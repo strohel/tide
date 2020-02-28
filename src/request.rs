@@ -12,6 +12,7 @@ use std::{str::FromStr, sync::Arc};
 
 use crate::error::Error;
 use crate::middleware::cookies::CookieData;
+use serde::export::Formatter;
 
 pin_project_lite::pin_project! {
     /// An HTTP request.
@@ -27,6 +28,16 @@ pin_project_lite::pin_project! {
         #[pin]
         pub(crate) request: http_service::Request,
         pub(crate) route_params: Vec<Params>,
+    }
+}
+
+/// Human-readable error returned by [Request::query] in case of query parsing failure.
+#[derive(Debug)]
+pub struct QueryParseError(String);
+
+impl std::fmt::Display for QueryParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -270,17 +281,12 @@ impl<State> Request<State> {
     }
 
     /// Get the URL querystring.
-    pub fn query<'de, T: Deserialize<'de>>(&'de self) -> Result<T, crate::Error> {
+    pub fn query<'de, T: Deserialize<'de>>(&'de self) -> Result<T, QueryParseError> {
         // Default to an empty query string if no query parameter has been specified.
         // This allows successful deserialisation of structs where all fields are optional
         // when none of those fields has actually been passed by the caller.
         let query = self.uri().query().unwrap_or("");
-        serde_qs::from_str(query).map_err(|e| {
-            // Return the displayable version of the deserialisation error to the caller
-            // for easier debugging.
-            let response = crate::Response::new(400).body_string(format!("{}", e));
-            crate::Error::from(response)
-        })
+        serde_qs::from_str(query).map_err(|e| QueryParseError(e.to_string()))
     }
 
     /// Parse the request body as a form.

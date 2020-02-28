@@ -1,4 +1,4 @@
-use crate::{Request, Response};
+use crate::{QueryParseError, Request, Response};
 use async_std::io::BufReader;
 
 /// Conversion into a `Response`.
@@ -57,6 +57,12 @@ impl<State: Send + Sync + 'static> IntoResponse for Request<State> {
 impl IntoResponse for &'_ str {
     fn into_response(self) -> Response {
         self.to_string().into_response()
+    }
+}
+
+impl IntoResponse for QueryParseError {
+    fn into_response(self) -> Response {
+        self.to_string().with_status(http::status::StatusCode::BAD_REQUEST).into_response()
     }
 }
 

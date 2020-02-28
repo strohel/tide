@@ -188,7 +188,7 @@ pub mod server;
 pub use endpoint::Endpoint;
 pub use error::{Error, Result, ResultExt};
 pub use redirect::redirect;
-pub use request::Request;
+pub use request::{QueryParseError, Request};
 
 #[doc(inline)]
 pub use middleware::{Middleware, Next};
